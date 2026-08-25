@@ -3,7 +3,6 @@ import path from 'path';
 import fs from 'fs';
 import os from 'os';
 import crypto from 'crypto';
-import { createServer as createViteServer } from 'vite';
 import dotenv from 'dotenv';
 import { ApplicationItem, ApplicationStatus, ApplicationRole, StaffApplication, BuilderApplication } from './src/types';
 
@@ -1146,6 +1145,7 @@ app.post('/api/admin/seed', adminAuthMiddleware, (req, res) => {
 // --- VITE & STATIC SERVING ---
 async function startServer() {
   if (process.env.NODE_ENV !== 'production') {
+    const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
