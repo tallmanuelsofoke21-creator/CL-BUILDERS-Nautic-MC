@@ -1,0 +1,7 @@
+{
+  "name": "CL | BUILDERS Nautic MC - Postulaciones Staff & Builder",
+  "description": "Sistema oficial de postulaciones para Builder y Staff de CL | BUILDERS Nautic MC con notificaciones automáticas por Discord, panel administrativo y base de datos.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
