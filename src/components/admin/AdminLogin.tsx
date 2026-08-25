@@ -101,7 +101,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({
                 autoFocus
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="iphone@gmail.com"
+                placeholder=""
                 className="w-full bg-[#0b0e16] border border-[#222c3f] rounded-xl pl-10 pr-4 py-3 text-white placeholder-slate-500 text-sm focus:border-blue-500 transition-colors"
               />
             </div>

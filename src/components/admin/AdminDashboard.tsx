@@ -140,6 +140,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   // Quick direct status toggle from row
   const handleQuickStatusChange = async (appId: string, newStatus: ApplicationStatus) => {
     try {
+      const savedStaffMc = localStorage.getItem('staff_reviewer_mc') || adminUsername || 'Staff Directivo';
+      const savedStaffDc = localStorage.getItem('staff_reviewer_dc') || adminUsername || 'Staff Directivo';
+      const defaultReason = newStatus === 'ACEPTADA'
+        ? 'Aceptada rápidamente desde el panel de administración.'
+        : 'Rechazada rápidamente desde el panel de administración.';
+
       const res = await fetch(`/api/admin/applications/${appId}/status`, {
         method: 'PATCH',
         headers: {
@@ -148,22 +154,34 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         },
         body: JSON.stringify({
           status: newStatus,
-          reviewed_by: adminUsername || 'Staff Directivo',
+          admin_notes: defaultReason,
+          reviewer_minecraft: savedStaffMc,
+          reviewer_discord: savedStaffDc,
+          notify_discord: true,
         }),
       });
 
+      const data = await res.json();
       if (res.ok) {
-        const data = await res.json();
         const updated = data.application as ApplicationItem;
         setApplications((prev) => prev.map((a) => (a.id === appId ? updated : a)));
         fetchStats();
         setActionNotice({
-          text: `Postulación ${appId} actualizada a ${newStatus} correctamente.`,
+          text: `Postulación ${appId} actualizada a ${newStatus} correctamente.${data.discord?.sent ? ' (Notificación enviada a Discord)' : ''}`,
           type: 'success',
+        });
+      } else {
+        setActionNotice({
+          text: data.error || `Error al actualizar la postulación a ${newStatus}.`,
+          type: 'error',
         });
       }
     } catch (err) {
       console.error('Error in quick status change:', err);
+      setActionNotice({
+        text: 'Error de conexión con el servidor.',
+        type: 'error',
+      });
     }
   };
 

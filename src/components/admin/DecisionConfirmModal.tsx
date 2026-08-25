@@ -49,30 +49,23 @@ export const DecisionConfirmModal: React.FC<DecisionConfirmModalProps> = ({
     e.preventDefault();
     setErrorMsg(null);
 
-    if (!reason.trim()) {
-      setErrorMsg(`Debes ingresar obligatoriamente el motivo/razón de ${isAccepting ? 'aceptación' : 'rechazo'}.`);
-      return;
-    }
+    const defaultReason = isAccepting
+      ? 'Postulación Aceptada por la directiva de CL | BUILDERS Nautic MC.'
+      : 'Postulación Rechazada tras la evaluación de la directiva.';
 
-    if (!reviewerMc.trim()) {
-      setErrorMsg('Debes ingresar tu Nick de Minecraft (Staff).');
-      return;
-    }
-
-    if (!reviewerDc.trim()) {
-      setErrorMsg('Debes ingresar tu Usuario de Discord (Staff).');
-      return;
-    }
+    const finalReason = reason.trim() || defaultReason;
+    const finalMc = reviewerMc.trim() || 'Staff Directivo';
+    const finalDc = reviewerDc.trim() || 'Staff Directivo';
 
     // Save staff credentials in localStorage for convenience in subsequent reviews
-    localStorage.setItem('staff_reviewer_mc', reviewerMc.trim());
-    localStorage.setItem('staff_reviewer_dc', reviewerDc.trim());
+    if (reviewerMc.trim()) localStorage.setItem('staff_reviewer_mc', reviewerMc.trim());
+    if (reviewerDc.trim()) localStorage.setItem('staff_reviewer_dc', reviewerDc.trim());
 
     await onConfirm({
       status: targetStatus,
-      reason: reason.trim(),
-      reviewer_minecraft: reviewerMc.trim(),
-      reviewer_discord: reviewerDc.trim(),
+      reason: finalReason,
+      reviewer_minecraft: finalMc,
+      reviewer_discord: finalDc,
     });
   };
 
@@ -105,7 +98,7 @@ export const DecisionConfirmModal: React.FC<DecisionConfirmModalProps> = ({
           <button
             onClick={onClose}
             disabled={isLoading}
-            className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+            className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -130,21 +123,20 @@ export const DecisionConfirmModal: React.FC<DecisionConfirmModalProps> = ({
             </span>
           </div>
 
-          {/* 1. Motivo Obligatorio */}
+          {/* 1. Motivo */}
           <div className="space-y-1.5">
             <label className="text-xs font-bold uppercase tracking-wider text-slate-200 flex items-center justify-between">
-              <span>{isAccepting ? 'Motivo de Aceptación *' : 'Razón de Rechazo (Obligatorio) *'}</span>
-              <span className="text-[11px] text-amber-400 font-semibold">Obligatorio</span>
+              <span>{isAccepting ? 'Motivo de Aceptación' : 'Razón de Rechazo'}</span>
+              <span className="text-[11px] text-slate-400 font-normal">(Opcional / Por defecto)</span>
             </label>
             <textarea
-              required
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               rows={3}
               placeholder={
                 isAccepting
-                  ? 'Motivo de aceptación...'
-                  : 'Razón del rechazo...'
+                  ? 'Motivo de aceptación (ej: Cumple con todos los requisitos y experiencia comprobable)...'
+                  : 'Razón del rechazo (ej: No cumple con la edad mínima o falta de experiencia)...'
               }
               className="w-full bg-[#080a10] border border-[#232c3f] focus:border-blue-500 rounded-xl p-3 text-white text-xs placeholder-slate-500 outline-none transition-all"
             />
@@ -156,14 +148,13 @@ export const DecisionConfirmModal: React.FC<DecisionConfirmModalProps> = ({
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
                 <Gamepad2 className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Tu Nick de Minecraft *</span>
+                <span>Tu Nick de Minecraft</span>
               </label>
               <input
                 type="text"
-                required
                 value={reviewerMc}
                 onChange={(e) => setReviewerMc(e.target.value)}
-                placeholder="Nick de Minecraft"
+                placeholder="Tu Nick de Minecraft (Staff)"
                 className="w-full bg-[#080a10] border border-[#232c3f] focus:border-blue-500 rounded-xl px-3 py-2.5 text-white text-xs placeholder-slate-500 outline-none"
               />
             </div>
@@ -172,14 +163,13 @@ export const DecisionConfirmModal: React.FC<DecisionConfirmModalProps> = ({
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
                 <MessageSquare className="w-3.5 h-3.5 text-[#5865F2]" />
-                <span>Tu Discord (Nombre o Tag) *</span>
+                <span>Tu Discord</span>
               </label>
               <input
                 type="text"
-                required
                 value={reviewerDc}
                 onChange={(e) => setReviewerDc(e.target.value)}
-                placeholder="Usuario de Discord"
+                placeholder="Tu Usuario de Discord"
                 className="w-full bg-[#080a10] border border-[#232c3f] focus:border-[#5865F2] rounded-xl px-3 py-2.5 text-white text-xs placeholder-slate-500 outline-none"
               />
             </div>
@@ -196,7 +186,7 @@ export const DecisionConfirmModal: React.FC<DecisionConfirmModalProps> = ({
                 ? 'bg-emerald-500/20 text-emerald-300' 
                 : 'bg-slate-800 text-slate-400'
             }`}>
-              {notifyDiscord ? 'Activada (Se enviará 1 mensaje)' : 'Desactivada'}
+              {notifyDiscord ? 'Activada (Se enviará mención y embed)' : 'Desactivada'}
             </span>
           </div>
 
@@ -206,7 +196,7 @@ export const DecisionConfirmModal: React.FC<DecisionConfirmModalProps> = ({
               type="button"
               onClick={onClose}
               disabled={isLoading}
-              className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition-colors"
+              className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
             >
               Cancelar
             </button>

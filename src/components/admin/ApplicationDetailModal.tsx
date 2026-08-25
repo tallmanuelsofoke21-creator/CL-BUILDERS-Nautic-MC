@@ -623,30 +623,30 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
             <button
               id="btn-reject-app"
               onClick={() => setDecisionModalTarget('RECHAZADA')}
-              disabled={isUpdatingStatus || (currentApp.status === 'RECHAZADA' && currentApp.discord_notified)}
+              disabled={isUpdatingStatus}
               className={`px-4 py-2.5 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 border cursor-pointer ${
                 currentApp.status === 'RECHAZADA'
-                  ? 'bg-rose-950/60 text-rose-300 border-rose-600/50'
+                  ? 'bg-rose-950/60 text-rose-300 border-rose-600/50 hover:bg-rose-900/60'
                   : 'bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border-rose-500/30'
               }`}
             >
               <XCircle className="w-4 h-4 text-rose-400" />
-              <span>{currentApp.status === 'RECHAZADA' ? '✕ YA RECHAZADA' : 'RECHAZAR'}</span>
+              <span>{currentApp.status === 'RECHAZADA' ? '✕ RECHAZADA (Actualizar)' : 'RECHAZAR'}</span>
             </button>
 
             {/* ACCEPT BUTTON */}
             <button
               id="btn-accept-app"
               onClick={() => setDecisionModalTarget('ACEPTADA')}
-              disabled={isUpdatingStatus || (currentApp.status === 'ACEPTADA' && currentApp.discord_notified)}
+              disabled={isUpdatingStatus}
               className={`px-5 py-2.5 text-xs font-extrabold rounded-xl transition-all flex items-center gap-1.5 uppercase tracking-wider cursor-pointer ${
                 currentApp.status === 'ACEPTADA'
-                  ? 'bg-emerald-900/60 text-emerald-300 border border-emerald-600/40'
+                  ? 'bg-emerald-800 text-emerald-100 border border-emerald-500/60 hover:bg-emerald-700'
                   : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-500/20'
               }`}
             >
-              <CheckCircle2 className="w-4 h-4 text-emerald-950" />
-              <span>{currentApp.status === 'ACEPTADA' ? '✓ YA ACEPTADA' : 'ACEPTAR POSTULACIÓN'}</span>
+              <CheckCircle2 className={`w-4 h-4 ${currentApp.status === 'ACEPTADA' ? 'text-emerald-200' : 'text-slate-950'}`} />
+              <span>{currentApp.status === 'ACEPTADA' ? '✓ ACEPTADA (Actualizar)' : 'ACEPTAR POSTULACIÓN'}</span>
             </button>
           </div>
         </div>

@@ -818,63 +818,42 @@ app.patch('/api/admin/applications/:id/status', adminAuthMiddleware, async (req,
     }
 
     const currentApp = applications[index];
-    const previousStatus = currentApp.status;
 
-    if (status === 'ACEPTADA' || status === 'RECHAZADA') {
-      if (!admin_notes || !admin_notes.trim()) {
-        return res.status(400).json({
-          error: `Es obligatorio indicar el motivo/razón de ${status === 'ACEPTADA' ? 'aceptación' : 'rechazo'}.`,
-        });
-      }
+    // Determine final audit and reason notes
+    const finalNotes = (admin_notes && admin_notes.trim())
+      ? admin_notes.trim()
+      : (status === 'ACEPTADA'
+          ? 'Postulación Aceptada por la directiva.'
+          : status === 'RECHAZADA'
+            ? 'Postulación Rechazada tras la evaluación de la directiva.'
+            : (currentApp.admin_notes || ''));
 
-      if (!reviewer_minecraft || !reviewer_minecraft.trim()) {
-        return res.status(400).json({
-          error: 'Es obligatorio que el Staff ingrese su Nick de Minecraft para registrar la auditoría.',
-        });
-      }
+    const finalReviewerMc = (reviewer_minecraft && reviewer_minecraft.trim())
+      ? reviewer_minecraft.trim()
+      : (currentApp.reviewer_minecraft || 'Staff Directivo');
 
-      if (!reviewer_discord || !reviewer_discord.trim()) {
-        return res.status(400).json({
-          error: 'Es obligatorio que el Staff ingrese su Usuario de Discord para registrar la auditoría.',
-        });
-      }
-
-      if (previousStatus === status && currentApp.discord_notified) {
-        return res.status(400).json({
-          error: `Esta postulación ya ha sido marcada como ${status} y la notificación ya fue enviada previamente.`,
-          alreadyResolved: true,
-        });
-      }
-    }
+    const finalReviewerDc = (reviewer_discord && reviewer_discord.trim())
+      ? reviewer_discord.trim()
+      : (currentApp.reviewer_discord || 'Staff Directivo');
 
     applications[index].status = status as ApplicationStatus;
     applications[index].updated_at = new Date().toISOString();
     applications[index].reviewed_at = new Date().toISOString();
-    
-    if (reviewer_discord?.trim() && reviewer_minecraft?.trim()) {
-      applications[index].reviewer_discord = reviewer_discord.trim();
-      applications[index].reviewer_minecraft = reviewer_minecraft.trim();
-      applications[index].reviewed_by = `${reviewer_minecraft.trim()} (${reviewer_discord.trim()})`;
-    }
-
-    if (admin_notes !== undefined) {
-      applications[index].admin_notes = admin_notes.trim();
-    }
+    applications[index].reviewer_discord = finalReviewerDc;
+    applications[index].reviewer_minecraft = finalReviewerMc;
+    applications[index].reviewed_by = `${finalReviewerMc} (${finalReviewerDc})`;
+    applications[index].admin_notes = finalNotes;
 
     let discordResult = { sent: false, message: 'Notificación omitida' };
     
     if (notify_discord !== false && (status === 'ACEPTADA' || status === 'RECHAZADA')) {
-      if (previousStatus !== status || !currentApp.discord_notified) {
-        discordResult = await sendDiscordResolutionNotification(
-          applications[index],
-          status as ApplicationStatus,
-          admin_notes
-        );
-        if (discordResult.sent) {
-          applications[index].discord_notified = true;
-        }
-      } else {
-        discordResult = { sent: false, message: 'Ya se había notificado previamente este estado.' };
+      discordResult = await sendDiscordResolutionNotification(
+        applications[index],
+        status as ApplicationStatus,
+        finalNotes
+      );
+      if (discordResult.sent) {
+        applications[index].discord_notified = true;
       }
     }
 
