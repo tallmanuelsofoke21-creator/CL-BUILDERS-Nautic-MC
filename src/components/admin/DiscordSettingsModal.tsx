@@ -106,7 +106,7 @@ export const DiscordSettingsModal: React.FC<DiscordSettingsModalProps> = ({
         setIsUnlocked(true);
         setStatusMessage({
           type: 'success',
-          text: `🔓 ¡Bienvenido ${data.owner_username || 'Cristofer'}! Acceso de Dueño concedido.`,
+          text: `🔓 ¡Bienvenido ${data.owner_username || 'Cuando'}! Acceso de Dueño concedido.`,
         });
       } else {
         setStatusMessage({
@@ -282,7 +282,7 @@ export const DiscordSettingsModal: React.FC<DiscordSettingsModalProps> = ({
               </div>
               <p className="text-xs text-slate-300">
                 {isUnlocked 
-                  ? 'Acceso desbloqueado como Dueño (Cristofer)' 
+                  ? 'Acceso desbloqueado como Dueño (Cuando)' 
                   : 'Protegido con credenciales maestras contra modificaciones de terceros'}
               </p>
             </div>
@@ -328,7 +328,7 @@ export const DiscordSettingsModal: React.FC<DiscordSettingsModalProps> = ({
         <div className="p-5 sm:p-6 space-y-5">
 
           {/* ========================================================================= */}
-          {/* VIEW 1: LOCKED STATE (SOLO CRISTOFER CON SU CONTRASEÑA PUEDE ENTRAR) */}
+          {/* VIEW 1: LOCKED STATE (SOLO CUANDO CON SU CONTRASEÑA PUEDE ENTRAR) */}
           {/* ========================================================================= */}
           {!isUnlocked ? (
             <div className="space-y-5">
@@ -340,7 +340,7 @@ export const DiscordSettingsModal: React.FC<DiscordSettingsModalProps> = ({
                   <span>Autenticación Exclusiva del Dueño</span>
                 </div>
                 <p className="text-xs text-slate-300 leading-relaxed">
-                  Para evitar filtraciones o cambios indebidos del Webhook por parte de otros miembros del staff o moderadores, esta sección solo puede ser abierta por <strong className="text-white">Cristofer</strong> con la clave maestra configurada.
+                  Para evitar filtraciones o cambios indebidos del Webhook por parte de otros miembros del staff o moderadores, esta sección solo puede ser abierta por <strong className="text-white">Cuando</strong> con la clave maestra configurada.
                 </p>
                 <div className="pt-1 flex items-center gap-2 text-xs">
                   <span className="text-slate-400">Estado actual del Webhook:</span>
@@ -423,7 +423,7 @@ export const DiscordSettingsModal: React.FC<DiscordSettingsModalProps> = ({
             </div>
           ) : (
             /* ========================================================================= */
-            /* VIEW 2: UNLOCKED STATE (PANEL COMPLETO DE GESTIÓN DE CRISTOFER) */
+            /* VIEW 2: UNLOCKED STATE (PANEL COMPLETO DE GESTIÓN DE CUANDO) */
             /* ========================================================================= */
             <div className="space-y-6">
 
@@ -431,7 +431,7 @@ export const DiscordSettingsModal: React.FC<DiscordSettingsModalProps> = ({
               <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-xl p-3.5 flex items-center justify-between text-xs text-emerald-200">
                 <div className="flex items-center gap-2 font-bold">
                   <ShieldCheck className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                  <span>Dueño Identificado: {masterUsernameInput || 'Cristofer'} • Edición Autorizada</span>
+                  <span>Dueño Identificado: {masterUsernameInput || 'Cuando'} • Edición Autorizada</span>
                 </div>
                 <button
                   onClick={handleRelock}

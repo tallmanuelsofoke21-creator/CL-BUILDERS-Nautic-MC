@@ -47,7 +47,7 @@ interface AppSettings {
   master_password?: string;
 }
 
-const DEFAULT_OWNER_MASTER_USERNAME = process.env.DISCORD_MASTER_USERNAME || 'Cristofer';
+const DEFAULT_OWNER_MASTER_USERNAME = process.env.DISCORD_MASTER_USERNAME || 'Cuando';
 const DEFAULT_OWNER_MASTER_PASSWORD = process.env.DISCORD_MASTER_PASSWORD || 'Popolo211516@@';
 
 let memorySettings: AppSettings | null = null;
@@ -1020,7 +1020,7 @@ app.post('/api/admin/settings', adminAuthMiddleware, (req, res) => {
 
     if (!isUserValid || !isPassValid) {
       return res.status(403).json({
-        error: '⛔ ACCESO DENEGADO: Solo el Dueño (Cristofer) con sus credenciales especiales puede modificar el Webhook.',
+        error: '⛔ ACCESO DENEGADO: Solo el Dueño (Cuando) con sus credenciales especiales puede modificar el Webhook.',
       });
     }
 
@@ -1068,7 +1068,7 @@ app.post('/api/admin/webhook/test', adminAuthMiddleware, async (req, res) => {
 
     if (!isUserValid || !isPassValid) {
       return res.status(403).json({
-        error: '⛔ ACCESO DENEGADO: Se requieren las credenciales especiales del Dueño (Cristofer) para realizar pruebas.',
+        error: '⛔ ACCESO DENEGADO: Se requieren las credenciales especiales del Dueño (Cuando) para realizar pruebas.',
       });
     }
 
