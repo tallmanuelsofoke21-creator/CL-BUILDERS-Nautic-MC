@@ -1185,10 +1185,19 @@ async function startServer() {
   });
 }
 
-// Only start standalone HTTP server when executed directly (not when imported in Vercel Serverless)
-if (!process.env.VERCEL) {
+// Only start standalone HTTP server when executed directly (not in Vercel / Serverless / Lambda)
+const isServerless = !!(
+  process.env.VERCEL ||
+  process.env.VERCEL_ENV ||
+  process.env.AWS_LAMBDA_FUNCTION_NAME ||
+  process.env.LAMBDA_TASK_ROOT ||
+  process.env.NODE_ENV === 'production' && !process.argv[1]?.includes('server')
+);
+
+if (!isServerless) {
   startServer();
 }
 
 export { app };
 export default app;
+
