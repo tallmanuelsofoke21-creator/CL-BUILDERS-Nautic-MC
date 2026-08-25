@@ -71,7 +71,7 @@ interface AppSettings {
   master_password?: string;
 }
 
-const DEFAULT_OWNER_MASTER_USERNAME = process.env.DISCORD_MASTER_USERNAME || 'Cuando';
+const DEFAULT_OWNER_MASTER_USERNAME = process.env.DISCORD_MASTER_USERNAME || 'iphone@gmail.com';
 const DEFAULT_OWNER_MASTER_PASSWORD = process.env.DISCORD_MASTER_PASSWORD || 'Popolo211516@@';
 
 let memorySettings: AppSettings | null = null;
@@ -347,7 +347,7 @@ function saveApplications(apps: ApplicationItem[]): boolean {
 getApplications();
 
 // Admin credentials
-const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'Cuando';
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'iphone@gmail.com';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Popolo211516@@';
 const SESSION_SECRET = process.env.ADMIN_SESSION_SECRET || 'cl_builders_nautic_secret_key_8492';
 
@@ -949,7 +949,7 @@ app.post('/api/admin/settings', adminAuthMiddleware, (req, res) => {
 
     if (!isUserValid || !isPassValid) {
       return res.status(403).json({
-        error: '⛔ ACCESO DENEGADO: Solo el Dueño (Cuando) con sus credenciales especiales puede modificar el Webhook.',
+        error: '⛔ ACCESO DENEGADO: Solo el Dueño con sus credenciales especiales puede modificar el Webhook.',
       });
     }
 
@@ -997,7 +997,7 @@ app.post('/api/admin/webhook/test', adminAuthMiddleware, async (req, res) => {
 
     if (!isUserValid || !isPassValid) {
       return res.status(403).json({
-        error: '⛔ ACCESO DENEGADO: Se requieren las credenciales especiales del Dueño (Cuando) para realizar pruebas.',
+        error: '⛔ ACCESO DENEGADO: Se requieren las credenciales especiales del Dueño para realizar pruebas.',
       });
     }
 
