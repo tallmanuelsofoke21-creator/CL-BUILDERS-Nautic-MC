@@ -4,7 +4,7 @@ import fs from 'fs';
 import os from 'os';
 import crypto from 'crypto';
 import dotenv from 'dotenv';
-import { ApplicationItem, ApplicationStatus, ApplicationRole, StaffApplication, BuilderApplication } from './src/types';
+import type { ApplicationItem, ApplicationStatus, ApplicationRole, StaffApplication, BuilderApplication } from './src/types';
 
 dotenv.config();
 
@@ -21,7 +21,12 @@ app.use((req, res, next) => {
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
-  if (req.url && !req.url.startsWith('/api') && !req.url.startsWith('/assets') && req.url !== '/' && !req.url.startsWith('/index.html')) {
+
+  // Restore matched path in Vercel Serverless environment
+  const matchedPath = (req.headers['x-matched-path'] as string) || (req.headers['x-now-route-matches'] as string) || req.url;
+  if (matchedPath && matchedPath.startsWith('/api')) {
+    req.url = matchedPath.split('?')[0];
+  } else if (req.url && !req.url.startsWith('/api') && !req.url.startsWith('/assets') && req.url !== '/' && !req.url.startsWith('/index.html')) {
     req.url = '/api' + (req.url.startsWith('/') ? '' : '/') + req.url;
   }
   next();
@@ -1161,6 +1166,12 @@ app.post('/api/admin/seed', adminAuthMiddleware, (req, res) => {
     res.status(500).json({ error: 'Error al reestablecer datos.' });
   }
 });
+
+// 11. Catch-all fallback for API routes (prevents serverless functions from hanging)
+app.use('/api', (req, res) => {
+  res.status(404).json({ error: `Ruta de API no encontrada: ${req.method} ${req.originalUrl || req.url}` });
+});
+
 
 
 // --- VITE & STATIC SERVING ---
