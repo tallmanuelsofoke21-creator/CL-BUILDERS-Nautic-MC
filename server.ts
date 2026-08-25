@@ -13,8 +13,29 @@ const PORT = 3000;
 
 app.use(express.json({ limit: '5mb' }));
 
+// CORS & Serverless URL Normalization Middleware
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  if (req.url && !req.url.startsWith('/api') && !req.url.startsWith('/assets') && req.url !== '/' && !req.url.startsWith('/index.html')) {
+    req.url = '/api' + (req.url.startsWith('/') ? '' : '/') + req.url;
+  }
+  next();
+});
+
 // Database directory and file path (safe for both local server and Vercel serverless /tmp)
-let DATA_DIR = path.join(process.cwd(), 'data');
+let PROJECT_ROOT = process.cwd();
+try {
+  if (typeof __dirname !== 'undefined') {
+    PROJECT_ROOT = __dirname;
+  }
+} catch {}
+
+let DATA_DIR = path.join(PROJECT_ROOT, 'data');
 
 try {
   if (!fs.existsSync(DATA_DIR)) {
@@ -35,7 +56,7 @@ try {
 const DB_FILE = path.join(DATA_DIR, 'applications.json');
 const SETTINGS_FILE = path.join(DATA_DIR, 'settings.json');
 
-const SOURCE_DATA_DIR = path.join(process.cwd(), 'data');
+const SOURCE_DATA_DIR = path.join(PROJECT_ROOT, 'data');
 const SOURCE_DB_FILE = path.join(SOURCE_DATA_DIR, 'applications.json');
 const SOURCE_SETTINGS_FILE = path.join(SOURCE_DATA_DIR, 'settings.json');
 

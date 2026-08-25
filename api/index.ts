@@ -1,7 +1,6 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
 import app from '../server';
+import type { IncomingMessage, ServerResponse } from 'http';
 
-export default function handler(req: VercelRequest, res: VercelResponse) {
-  // Let Express handle the request
+export default function handler(req: IncomingMessage, res: ServerResponse) {
   return app(req as any, res as any);
 }
