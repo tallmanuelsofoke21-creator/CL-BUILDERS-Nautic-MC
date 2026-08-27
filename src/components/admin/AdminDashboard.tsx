@@ -21,7 +21,8 @@ import {
   Hammer,
   Sparkles,
   UserCheck,
-  Radio
+  Radio,
+  Lock
 } from 'lucide-react';
 import { ApplicationItem, ApplicationStatus, ApplicationRole, ApplicationStats } from '../../types';
 import { ApplicationDetailModal } from './ApplicationDetailModal';
@@ -784,39 +785,44 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                       {/* Acciones */}
                       <td className="px-5 py-4 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-end gap-1.5">
-                          {/* Quick Accept */}
-                          {app.status !== 'ACEPTADA' && (
-                            <button
-                              id={`quick-accept-${app.id}`}
-                              onClick={() => handleQuickStatusChange(app.id, 'ACEPTADA')}
-                              className="p-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500 text-emerald-400 hover:text-slate-950 border border-emerald-500/30 text-xs font-bold transition-all"
-                              title="Aceptar directamente"
-                            >
-                              <Check className="w-3.5 h-3.5" />
-                            </button>
-                          )}
+                        <div className="flex items-center justify-end gap-2">
+                          {app.status === 'PENDIENTE' ? (
+                            <>
+                              {/* Quick Accept */}
+                              <button
+                                id={`quick-accept-${app.id}`}
+                                onClick={() => handleQuickStatusChange(app.id, 'ACEPTADA')}
+                                className="p-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500 text-emerald-400 hover:text-slate-950 border border-emerald-500/30 text-xs font-bold transition-all cursor-pointer shadow-sm"
+                                title="Aceptar postulación"
+                              >
+                                <Check className="w-3.5 h-3.5" />
+                              </button>
 
-                          {/* Quick Reject */}
-                          {app.status !== 'RECHAZADA' && (
-                            <button
-                              id={`quick-reject-${app.id}`}
-                              onClick={() => handleQuickStatusChange(app.id, 'RECHAZADA')}
-                              className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500 text-rose-400 hover:text-white border border-rose-500/30 text-xs font-bold transition-all"
-                              title="Rechazar directamente"
-                            >
-                              <XCircle className="w-3.5 h-3.5" />
-                            </button>
+                              {/* Quick Reject */}
+                              <button
+                                id={`quick-reject-${app.id}`}
+                                onClick={() => handleQuickStatusChange(app.id, 'RECHAZADA')}
+                                className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500 text-rose-400 hover:text-white border border-rose-500/30 text-xs font-bold transition-all cursor-pointer shadow-sm"
+                                title="Rechazar postulación"
+                              >
+                                <XCircle className="w-3.5 h-3.5" />
+                              </button>
+                            </>
+                          ) : (
+                            <span className="text-[11px] text-slate-500 font-medium px-2 py-1 rounded-md bg-[#0b0e16] border border-slate-800 flex items-center gap-1">
+                              <Lock className="w-3 h-3 text-slate-500" />
+                              <span>No modificable</span>
+                            </span>
                           )}
 
                           {/* Open Full Detail Modal */}
                           <button
                             id={`btn-view-${app.id}`}
                             onClick={() => setSelectedApp(app)}
-                            className="px-3 py-1.5 rounded-lg bg-blue-600/15 hover:bg-blue-600 text-blue-300 hover:text-white border border-blue-500/30 text-xs font-semibold transition-all inline-flex items-center gap-1.5 ml-1"
+                            className="px-3 py-1.5 rounded-lg bg-blue-600/15 hover:bg-blue-600 text-blue-300 hover:text-white border border-blue-500/30 text-xs font-semibold transition-all inline-flex items-center gap-1.5 cursor-pointer ml-1"
                           >
                             <Eye className="w-3.5 h-3.5" />
-                            <span>Revisar</span>
+                            <span>{app.status === 'PENDIENTE' ? 'Revisar' : 'Ver Detalles'}</span>
                           </button>
                         </div>
                       </td>

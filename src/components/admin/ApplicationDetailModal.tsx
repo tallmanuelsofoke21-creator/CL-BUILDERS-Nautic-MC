@@ -550,105 +550,127 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
 
           {/* ADMIN INTERNAL NOTES SECTION */}
           <div className="bg-[#121622] border border-[#1e2638] rounded-xl p-4 space-y-2">
-            <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
-              Notas y Observaciones Internas del Staff
+            <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center justify-between">
+              <span>Notas y Observaciones Internas del Staff</span>
+              {(currentApp.status === 'ACEPTADA' || currentApp.status === 'RECHAZADA') && (
+                <span className="text-[11px] text-slate-400 font-semibold flex items-center gap-1 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
+                  <Lock className="w-3 h-3 text-slate-400" /> Resolución definitiva (Bloqueada)
+                </span>
+              )}
             </label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
+              disabled={currentApp.status === 'ACEPTADA' || currentApp.status === 'RECHAZADA'}
               placeholder="Escribe comentarios privados sobre esta postulación..."
-              className="w-full bg-[#0b0e16] border border-[#222c3f] rounded-lg p-3 text-white text-xs placeholder-slate-500 focus:border-blue-500"
+              className={`w-full bg-[#0b0e16] border border-[#222c3f] rounded-lg p-3 text-white text-xs placeholder-slate-500 ${
+                currentApp.status === 'ACEPTADA' || currentApp.status === 'RECHAZADA'
+                  ? 'opacity-75 cursor-not-allowed'
+                  : 'focus:border-blue-500'
+              }`}
             />
-            <div className="flex justify-end">
-              <button
-                id="save-notes-btn"
-                onClick={handleSaveNotesOnly}
-                disabled={isSavingNotes}
-                className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700 flex items-center gap-1.5 transition-colors"
-              >
-                <Save className="w-3.5 h-3.5" />
-                <span>{isSavingNotes ? 'Guardando...' : 'Guardar Solo Notas'}</span>
-              </button>
-            </div>
+            {currentApp.status === 'PENDIENTE' && (
+              <div className="flex justify-end">
+                <button
+                  id="save-notes-btn"
+                  onClick={handleSaveNotesOnly}
+                  disabled={isSavingNotes}
+                  className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700 flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  <span>{isSavingNotes ? 'Guardando...' : 'Guardar Solo Notas'}</span>
+                </button>
+              </div>
+            )}
           </div>
 
         </div>
 
-        {/* MODAL FOOTER: DIRECT DECISION BUTTONS & DISCORD TOGGLE */}
-        <div className="p-4 sm:p-5 bg-[#121722] border-t border-[#1e2638] flex flex-col sm:flex-row items-center justify-between gap-4">
-          
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
-            <div className="flex items-center gap-2 text-xs text-slate-400">
-              <span>Estado actual:</span>
-              <strong className={`px-2 py-0.5 rounded font-bold ${
-                currentApp.status === 'ACEPTADA' ? 'text-emerald-400 bg-emerald-500/10' :
-                currentApp.status === 'RECHAZADA' ? 'text-rose-400 bg-rose-500/10' :
-                'text-amber-400 bg-amber-500/10'
-              }`}>
-                {currentApp.status}
-              </strong>
-            </div>
+        {/* MODAL FOOTER: DIRECT DECISION BUTTONS & IMMUTABILITY BANNER */}
+        <div className="p-4 sm:p-5 bg-[#121722] border-t border-[#1e2638]">
+          {currentApp.status === 'ACEPTADA' || currentApp.status === 'RECHAZADA' ? (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 w-full">
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                  currentApp.status === 'ACEPTADA' 
+                    ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' 
+                    : 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
+                }`}>
+                  <Lock className="w-5 h-5" />
+                </div>
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs font-black uppercase tracking-wider ${
+                      currentApp.status === 'ACEPTADA' ? 'text-emerald-400' : 'text-rose-400'
+                    }`}>
+                      Resolución Definitiva ({currentApp.status})
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400">
+                    Esta postulación ya fue finalizada{currentApp.reviewed_at ? ` el ${formatDate(currentApp.reviewed_at)}` : ''} y no puede ser modificada.
+                  </p>
+                </div>
+              </div>
 
-            {/* Discord Notification Checkbox */}
-            <label className="inline-flex items-center gap-2 text-xs text-slate-300 bg-[#0c0f17] px-3 py-1.5 rounded-lg border border-slate-800 cursor-pointer select-none hover:border-[#5865F2]/50 transition-colors">
-              <input
-                type="checkbox"
-                checked={notifyDiscord}
-                onChange={(e) => setNotifyDiscord(e.target.checked)}
-                className="w-4 h-4 rounded text-[#5865F2] focus:ring-[#5865F2] bg-slate-900 border-slate-700"
-              />
-              <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-[#5865F2]"></span>
-                <span>Notificar en Discord (<strong className="text-slate-200">@{currentApp.discord_username}</strong>)</span>
-              </span>
-            </label>
-          </div>
-
-          <div className="flex items-center gap-2.5 w-full sm:w-auto flex-wrap justify-end">
-            {/* PENDING BUTTON */}
-            {currentApp.status !== 'PENDIENTE' && (
               <button
-                id="btn-mark-pending"
-                onClick={handleMarkPending}
-                disabled={isUpdatingStatus}
-                className="px-3.5 py-2.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
+                id="btn-close-finalized-modal"
+                onClick={onClose}
+                className="w-full sm:w-auto px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-bold rounded-xl border border-slate-700 transition-colors text-xs cursor-pointer"
               >
-                <Clock className="w-4 h-4" />
-                <span>Reabrir a Pendiente</span>
+                Cerrar
               </button>
-            )}
+            </div>
+          ) : (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 w-full">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
+                <div className="flex items-center gap-2 text-xs text-slate-400">
+                  <span>Estado:</span>
+                  <strong className="px-2.5 py-1 rounded font-bold text-amber-400 bg-amber-500/10 border border-amber-500/30">
+                    🟡 PENDIENTE
+                  </strong>
+                </div>
 
-            {/* REJECT BUTTON */}
-            <button
-              id="btn-reject-app"
-              onClick={() => setDecisionModalTarget('RECHAZADA')}
-              disabled={isUpdatingStatus}
-              className={`px-4 py-2.5 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 border cursor-pointer ${
-                currentApp.status === 'RECHAZADA'
-                  ? 'bg-rose-950/60 text-rose-300 border-rose-600/50 hover:bg-rose-900/60'
-                  : 'bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border-rose-500/30'
-              }`}
-            >
-              <XCircle className="w-4 h-4 text-rose-400" />
-              <span>{currentApp.status === 'RECHAZADA' ? '✕ RECHAZADA (Actualizar)' : 'RECHAZAR'}</span>
-            </button>
+                {/* Discord Notification Checkbox */}
+                <label className="inline-flex items-center gap-2 text-xs text-slate-300 bg-[#0c0f17] px-3 py-1.5 rounded-lg border border-slate-800 cursor-pointer select-none hover:border-[#5865F2]/50 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={notifyDiscord}
+                    onChange={(e) => setNotifyDiscord(e.target.checked)}
+                    className="w-4 h-4 rounded text-[#5865F2] focus:ring-[#5865F2] bg-slate-900 border-slate-700"
+                  />
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-[#5865F2]"></span>
+                    <span>Notificar en Discord (<strong className="text-slate-200">@{currentApp.discord_username}</strong>)</span>
+                  </span>
+                </label>
+              </div>
 
-            {/* ACCEPT BUTTON */}
-            <button
-              id="btn-accept-app"
-              onClick={() => setDecisionModalTarget('ACEPTADA')}
-              disabled={isUpdatingStatus}
-              className={`px-5 py-2.5 text-xs font-extrabold rounded-xl transition-all flex items-center gap-1.5 uppercase tracking-wider cursor-pointer ${
-                currentApp.status === 'ACEPTADA'
-                  ? 'bg-emerald-800 text-emerald-100 border border-emerald-500/60 hover:bg-emerald-700'
-                  : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-500/20'
-              }`}
-            >
-              <CheckCircle2 className={`w-4 h-4 ${currentApp.status === 'ACEPTADA' ? 'text-emerald-200' : 'text-slate-950'}`} />
-              <span>{currentApp.status === 'ACEPTADA' ? '✓ ACEPTADA (Actualizar)' : 'ACEPTAR POSTULACIÓN'}</span>
-            </button>
-          </div>
+              <div className="flex items-center gap-2.5 w-full sm:w-auto flex-wrap justify-end">
+                {/* REJECT BUTTON */}
+                <button
+                  id="btn-reject-app"
+                  onClick={() => setDecisionModalTarget('RECHAZADA')}
+                  disabled={isUpdatingStatus}
+                  className="px-4 py-2.5 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 border cursor-pointer bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border-rose-500/30"
+                >
+                  <XCircle className="w-4 h-4 text-rose-400" />
+                  <span>RECHAZAR</span>
+                </button>
+
+                {/* ACCEPT BUTTON */}
+                <button
+                  id="btn-accept-app"
+                  onClick={() => setDecisionModalTarget('ACEPTADA')}
+                  disabled={isUpdatingStatus}
+                  className="px-5 py-2.5 text-xs font-extrabold rounded-xl transition-all flex items-center gap-1.5 uppercase tracking-wider cursor-pointer bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-500/20"
+                >
+                  <CheckCircle2 className="w-4 h-4 text-slate-950" />
+                  <span>ACEPTAR POSTULACIÓN</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
       </div>

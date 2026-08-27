@@ -1019,11 +1019,12 @@ app.patch('/api/admin/applications/:id/status', adminAuthMiddleware, async (req,
 
     const currentApp = applications[index];
 
-    // Validate already processed status without note changes (prevent duplicate actions / redundant processing)
-    if (currentApp.status === status && (!admin_notes || admin_notes.trim() === (currentApp.admin_notes || '').trim())) {
+    // Enforce strict immutability: accepted and rejected applications CANNOT be modified
+    if (currentApp.status === 'ACEPTADA' || currentApp.status === 'RECHAZADA') {
+      const dateStr = currentApp.reviewed_at || currentApp.updated_at || currentApp.created_at;
       return res.status(400).json({
-        error: `La postulación #${id} ya fue procesada anteriormente con estado ${status}.`,
-        alreadyProcessed: true,
+        error: `La postulación #${id} ya fue finalizada como ${currentApp.status} y no puede ser modificada. Su resolución es permanente e inmutable.`,
+        isFinalized: true,
         application: currentApp,
       });
     }
