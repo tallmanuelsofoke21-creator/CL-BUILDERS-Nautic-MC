@@ -22,10 +22,10 @@ app.use((req, res, next) => {
   }
 
   // Restore matched path in Vercel Serverless environment
-  const matchedPath = (req.headers['x-matched-path'] as string) || (req.headers['x-now-route-matches'] as string) || req.url;
+  const matchedPath = (req.headers['x-matched-path'] as string) || (req.headers['x-now-route-matches'] as string);
   if (matchedPath && matchedPath.startsWith('/api')) {
     req.url = matchedPath.split('?')[0];
-  } else if (req.url && !req.url.startsWith('/api') && !req.url.startsWith('/assets') && req.url !== '/' && !req.url.startsWith('/index.html')) {
+  } else if (process.env.VERCEL && req.url && !req.url.startsWith('/api')) {
     req.url = '/api' + (req.url.startsWith('/') ? '' : '/') + req.url;
   }
   next();
@@ -242,6 +242,19 @@ async function sendDiscordResolutionNotification(
   }
 }
 
+// Normalize applications from storage to ensure schema consistency
+function normalizeApplication(item: any): ApplicationItem {
+  const role: ApplicationRole = item.role === 'BUILDER' ? 'BUILDER' : 'STAFF';
+  const access_pin = item.access_pin || (item.id ? item.id.replace(/\D/g, '').slice(-6) || '849201' : '123456');
+  const reviewed_at = item.reviewed_at || (item.status === 'ACEPTADA' || item.status === 'RECHAZADA' ? (item.updated_at || item.created_at) : undefined);
+  return {
+    ...item,
+    role,
+    access_pin,
+    reviewed_at,
+  };
+}
+
 // Initial seed applications if file doesn't exist
 const INITIAL_SEED_APPLICATIONS: ApplicationItem[] = [
   {
@@ -261,6 +274,7 @@ const INITIAL_SEED_APPLICATIONS: ApplicationItem[] = [
     chat_conflict: 'Primero llamaría la atención con una advertencia verbal clara en el chat. Si continúan, aplicaría un silencio temporal (/mute 10m) citando la norma correspondiente y guardando pruebas en captura.',
     corrupt_staff: 'Nunca enfrentaría al Staff en público ni en chats generales. Recopilaría pruebas irrefutables (capturas, logs, videos) y se las reportaría de inmediato por privado a un Administrador o Dueño.',
     status: 'PENDIENTE',
+    access_pin: '849201',
     created_at: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
     updated_at: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
   },
@@ -286,6 +300,7 @@ const INITIAL_SEED_APPLICATIONS: ApplicationItem[] = [
     rules_commitment: 'Sí, me comprometo al 100% a respetar y hacer respetar todas las normas del servidor y del equipo de construcción.',
     additional_info: 'Tengo portafolio con capturas en Imgur y muchas ganas de empezar.',
     status: 'PENDIENTE',
+    access_pin: '332104',
     created_at: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(),
     updated_at: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(),
   }
@@ -303,7 +318,7 @@ function getApplications(): ApplicationItem[] {
       const data = fs.readFileSync(DB_FILE, 'utf-8');
       const parsed = JSON.parse(data);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        memoryApplications = parsed.map((item) => (!item.role ? { ...item, role: 'STAFF' } : item));
+        memoryApplications = parsed.map(normalizeApplication);
         return memoryApplications;
       }
     }
@@ -311,7 +326,7 @@ function getApplications(): ApplicationItem[] {
       const data = fs.readFileSync(SOURCE_DB_FILE, 'utf-8');
       const parsed = JSON.parse(data);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        memoryApplications = parsed.map((item) => (!item.role ? { ...item, role: 'STAFF' } : item));
+        memoryApplications = parsed.map(normalizeApplication);
         try {
           fs.writeFileSync(DB_FILE, JSON.stringify(memoryApplications, null, 2), 'utf-8');
         } catch {}
@@ -319,23 +334,23 @@ function getApplications(): ApplicationItem[] {
       }
     }
     // Default seed
-    memoryApplications = [...INITIAL_SEED_APPLICATIONS];
+    memoryApplications = INITIAL_SEED_APPLICATIONS.map(normalizeApplication);
     try {
       fs.writeFileSync(DB_FILE, JSON.stringify(memoryApplications, null, 2), 'utf-8');
     } catch {}
     return memoryApplications;
   } catch (error) {
     console.error('Error reading database:', error);
-    memoryApplications = [...INITIAL_SEED_APPLICATIONS];
+    memoryApplications = INITIAL_SEED_APPLICATIONS.map(normalizeApplication);
     return memoryApplications;
   }
 }
 
 // Helper to save DB
 function saveApplications(apps: ApplicationItem[]): boolean {
-  memoryApplications = apps;
+  memoryApplications = apps.map(normalizeApplication);
   try {
-    fs.writeFileSync(DB_FILE, JSON.stringify(apps, null, 2), 'utf-8');
+    fs.writeFileSync(DB_FILE, JSON.stringify(memoryApplications, null, 2), 'utf-8');
     return true;
   } catch (error) {
     console.error('Error writing database to disk:', error);
@@ -351,7 +366,7 @@ const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'iphone@gmail.com';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Popolo211516@@';
 const SESSION_SECRET = process.env.ADMIN_SESSION_SECRET || 'cl_builders_nautic_secret_key_8492';
 
-// Active tokens in memory
+// Active admin tokens in memory
 const activeTokens = new Set<string>();
 
 function generateToken(username: string): string {
@@ -391,6 +406,48 @@ function adminAuthMiddleware(req: express.Request, res: express.Response, next: 
   if (!verifyToken(token)) {
     return res.status(401).json({ error: 'Sesión expirada o token inválido.' });
   }
+  next();
+}
+
+// --- APPLICANT SECURITY & AUTHENTICATION (HMAC-SHA256) ---
+
+function generateApplicantToken(discordId: string, discordUsername?: string): string {
+  const cleanId = String(discordId).trim();
+  const cleanUser = String(discordUsername || '').trim();
+  const payload = `${cleanId}:${cleanUser}:${Date.now()}:${crypto.randomBytes(16).toString('hex')}`;
+  const signature = crypto.createHmac('sha256', SESSION_SECRET).update(`applicant:${payload}`).digest('hex');
+  return Buffer.from(`${payload}:${signature}`).toString('base64');
+}
+
+function verifyApplicantToken(token: string | undefined): { valid: boolean; discord_id?: string; discord_username?: string } {
+  if (!token) return { valid: false };
+  try {
+    const decoded = Buffer.from(token, 'base64').toString('utf-8');
+    const parts = decoded.split(':');
+    if (parts.length < 5) return { valid: false };
+    const signature = parts[parts.length - 1];
+    const payload = parts.slice(0, parts.length - 1).join(':');
+    const expectedSig = crypto.createHmac('sha256', SESSION_SECRET).update(`applicant:${payload}`).digest('hex');
+    if (signature !== expectedSig) return { valid: false };
+    return { valid: true, discord_id: parts[0], discord_username: parts[1] };
+  } catch {
+    return { valid: false };
+  }
+}
+
+// Middleware to authenticate verified applicant identity
+function applicantAuthMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'No autorizado. Se requiere iniciar sesión con tu Discord ID o código de acceso.' });
+  }
+  const token = authHeader.split(' ')[1];
+  const verification = verifyApplicantToken(token);
+  if (!verification.valid || !verification.discord_id) {
+    return res.status(401).json({ error: 'Sesión de postulante expirada o token no válido.' });
+  }
+  (req as any).applicantDiscordId = verification.discord_id;
+  (req as any).applicantDiscordUser = verification.discord_username;
   next();
 }
 
@@ -475,6 +532,7 @@ app.post('/api/applications', (req, res) => {
 
       const randomNum = Math.floor(10000 + Math.random() * 90000);
       const newId = `CL-BLD-${randomNum}`;
+      const access_pin = String(Math.floor(100000 + Math.random() * 900000));
 
       const newApplication: BuilderApplication = {
         id: newId,
@@ -498,6 +556,7 @@ app.post('/api/applications', (req, res) => {
         rules_commitment: String(rules_commitment).trim(),
         additional_info: additional_info ? String(additional_info).trim() : '',
         status: 'PENDIENTE',
+        access_pin: access_pin,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
@@ -505,15 +564,21 @@ app.post('/api/applications', (req, res) => {
       applications.unshift(newApplication);
       saveApplications(applications);
 
+      const applicant_token = generateApplicantToken(cleanDiscordId, newApplication.discord_username);
+
       return res.status(201).json({
         success: true,
         message: '¡Postulación para Builder enviada correctamente!',
+        access_pin: access_pin,
+        applicant_token: applicant_token,
         application: {
           id: newApplication.id,
           role: newApplication.role,
           discord_username: newApplication.discord_username,
+          discord_id: newApplication.discord_id,
           minecraft_username: newApplication.minecraft_username,
           status: newApplication.status,
+          access_pin: newApplication.access_pin,
           created_at: newApplication.created_at,
         },
       });
@@ -583,6 +648,7 @@ app.post('/api/applications', (req, res) => {
 
     const randomNum = Math.floor(10000 + Math.random() * 90000);
     const newId = `CL-STF-${randomNum}`;
+    const access_pin = String(Math.floor(100000 + Math.random() * 900000));
 
     const newApplication: StaffApplication = {
       id: newId,
@@ -601,6 +667,7 @@ app.post('/api/applications', (req, res) => {
       chat_conflict: String(chat_conflict).trim(),
       corrupt_staff: String(corrupt_staff).trim(),
       status: 'PENDIENTE',
+      access_pin: access_pin,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -608,15 +675,21 @@ app.post('/api/applications', (req, res) => {
     applications.unshift(newApplication);
     saveApplications(applications);
 
+    const applicant_token = generateApplicantToken(cleanDiscordId, newApplication.discord_username);
+
     return res.status(201).json({
       success: true,
       message: '¡Postulación para Staff enviada correctamente!',
+      access_pin: access_pin,
+      applicant_token: applicant_token,
       application: {
         id: newApplication.id,
         role: newApplication.role,
         discord_username: newApplication.discord_username,
+        discord_id: newApplication.discord_id,
         minecraft_username: newApplication.minecraft_username,
         status: newApplication.status,
+        access_pin: newApplication.access_pin,
         created_at: newApplication.created_at,
       },
     });
@@ -653,9 +726,136 @@ app.get('/api/applications/status/:identifier', (req, res) => {
       status: found.status,
       created_at: found.created_at,
       updated_at: found.updated_at,
+      reviewed_at: found.reviewed_at,
     });
   } catch (error) {
     return res.status(500).json({ error: 'Error al consultar el estado de la postulación.' });
+  }
+});
+
+// --- APPLICANT SECURE PORTAL API ROUTES ---
+
+// 2.1 Applicant Login / Identification
+app.post('/api/applicant/login', (req, res) => {
+  try {
+    const { discord_id, pin, application_id } = req.body;
+    const cleanDiscordId = String(discord_id || '').trim();
+
+    if (!cleanDiscordId) {
+      return res.status(400).json({ error: 'Por favor ingresa tu Discord ID.' });
+    }
+
+    const applications = getApplications();
+    const userApps = applications.filter(
+      (a) => a.discord_id.trim().toLowerCase() === cleanDiscordId.toLowerCase()
+    );
+
+    if (userApps.length > 0) {
+      // If PIN is provided, verify it
+      if (pin && String(pin).trim()) {
+        const cleanPin = String(pin).trim();
+        const hasMatchingPin = userApps.some((a) => a.access_pin === cleanPin);
+        if (!hasMatchingPin) {
+          return res.status(401).json({ error: 'El código PIN de seguridad no coincide con esta cuenta de Discord.' });
+        }
+      } else if (application_id && String(application_id).trim()) {
+        const cleanAppId = String(application_id).trim().toLowerCase();
+        const hasMatchingApp = userApps.some((a) => a.id.toLowerCase() === cleanAppId);
+        if (!hasMatchingApp) {
+          return res.status(401).json({ error: 'El ID de postulación no coincide con este Discord ID.' });
+        }
+      }
+
+      const latestApp = userApps[0];
+      const token = generateApplicantToken(cleanDiscordId, latestApp.discord_username);
+      return res.json({
+        success: true,
+        token,
+        discord_id: cleanDiscordId,
+        discord_username: latestApp.discord_username,
+        total_applications: userApps.length,
+      });
+    } else {
+      // User has no applications yet
+      const fallbackUser = `Usuario (${cleanDiscordId.slice(-4)})`;
+      const token = generateApplicantToken(cleanDiscordId, fallbackUser);
+      return res.json({
+        success: true,
+        token,
+        discord_id: cleanDiscordId,
+        discord_username: fallbackUser,
+        total_applications: 0,
+      });
+    }
+  } catch (error) {
+    return res.status(500).json({ error: 'Error al verificar la identidad del postulante.' });
+  }
+});
+
+// 2.2 Verify Applicant Token
+app.get('/api/applicant/verify', applicantAuthMiddleware, (req, res) => {
+  const discordId = (req as any).applicantDiscordId;
+  const discordUser = (req as any).applicantDiscordUser;
+  res.json({ valid: true, discord_id: discordId, discord_username: discordUser });
+});
+
+// 2.3 Get all my applications (Split into: In Review & History)
+app.get('/api/applicant/my-applications', applicantAuthMiddleware, (req, res) => {
+  try {
+    const discordId = (req as any).applicantDiscordId;
+    const applications = getApplications();
+
+    const userApps = applications.filter(
+      (a) => a.discord_id.trim().toLowerCase() === discordId.trim().toLowerCase()
+    );
+
+    // Section 2: "Postulaciones en revisión" (strictly PENDIENTE)
+    const inReview = userApps
+      .filter((a) => a.status === 'PENDIENTE')
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+    // Section 3: "Historial de postulaciones" (ACEPTADA or RECHAZADA)
+    const history = userApps
+      .filter((a) => a.status === 'ACEPTADA' || a.status === 'RECHAZADA')
+      .sort((a, b) => {
+        const dateA = a.reviewed_at ? new Date(a.reviewed_at).getTime() : new Date(a.created_at).getTime();
+        const dateB = b.reviewed_at ? new Date(b.reviewed_at).getTime() : new Date(b.created_at).getTime();
+        return dateB - dateA;
+      });
+
+    const latestUsername = userApps[0]?.discord_username || (req as any).applicantDiscordUser || discordId;
+
+    return res.json({
+      discord_id: discordId,
+      discord_username: latestUsername,
+      in_review: inReview,
+      history: history,
+      total_count: userApps.length,
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'Error al obtener tus postulaciones.' });
+  }
+});
+
+// 2.4 Get full details of a specific application owned by this applicant
+app.get('/api/applicant/application/:id', applicantAuthMiddleware, (req, res) => {
+  try {
+    const { id } = req.params;
+    const discordId = (req as any).applicantDiscordId;
+    const applications = getApplications();
+
+    const found = applications.find((a) => a.id.toLowerCase() === id.toLowerCase());
+    if (!found) {
+      return res.status(404).json({ error: 'Postulación no encontrada.' });
+    }
+
+    if (found.discord_id.trim().toLowerCase() !== discordId.trim().toLowerCase()) {
+      return res.status(403).json({ error: 'No tienes permiso para ver los detalles de esta postulación.' });
+    }
+
+    return res.json(found);
+  } catch (error) {
+    return res.status(500).json({ error: 'Error al consultar los detalles de la postulación.' });
   }
 });
 
@@ -819,6 +1019,15 @@ app.patch('/api/admin/applications/:id/status', adminAuthMiddleware, async (req,
 
     const currentApp = applications[index];
 
+    // Validate already processed status without note changes (prevent duplicate actions / redundant processing)
+    if (currentApp.status === status && (!admin_notes || admin_notes.trim() === (currentApp.admin_notes || '').trim())) {
+      return res.status(400).json({
+        error: `La postulación #${id} ya fue procesada anteriormente con estado ${status}.`,
+        alreadyProcessed: true,
+        application: currentApp,
+      });
+    }
+
     // Determine final audit and reason notes
     const finalNotes = (admin_notes && admin_notes.trim())
       ? admin_notes.trim()
@@ -838,7 +1047,13 @@ app.patch('/api/admin/applications/:id/status', adminAuthMiddleware, async (req,
 
     applications[index].status = status as ApplicationStatus;
     applications[index].updated_at = new Date().toISOString();
-    applications[index].reviewed_at = new Date().toISOString();
+    
+    if (status === 'ACEPTADA' || status === 'RECHAZADA') {
+      applications[index].reviewed_at = new Date().toISOString();
+    } else if (status === 'PENDIENTE') {
+      delete applications[index].reviewed_at;
+    }
+
     applications[index].reviewer_discord = finalReviewerDc;
     applications[index].reviewer_minecraft = finalReviewerMc;
     applications[index].reviewed_by = `${finalReviewerMc} (${finalReviewerDc})`;

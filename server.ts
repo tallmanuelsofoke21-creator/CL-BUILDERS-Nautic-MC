@@ -2,7 +2,7 @@ import app from './api/index';
 import path from 'path';
 import express from 'express';
 
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
 async function startServer() {
   if (process.env.NODE_ENV !== 'production') {
@@ -21,7 +21,9 @@ async function startServer() {
   }
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`CL | BUILDERS Nautic MC Server running on http://localhost:${PORT}`);
+    console.log(`CL | BUILDERS Nautic MC Server running at:`);
+    console.log(`  > Local:   http://localhost:${PORT}`);
+    console.log(`  > Network: http://127.0.0.1:${PORT}`);
   });
 }
 

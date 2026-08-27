@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { ServerLogo } from './ServerLogo';
 import { Shield, FileText, Search, Menu, X, ExternalLink, Sparkles } from 'lucide-react';
 
+import { AppView, ApplicationRole } from '../types';
+
 interface NavbarProps {
-  currentView: 'home' | 'form' | 'status' | 'admin';
-  currentRole?: 'STAFF' | 'BUILDER';
-  onNavigate: (view: 'home' | 'form' | 'status' | 'admin', role?: 'STAFF' | 'BUILDER') => void;
+  currentView: AppView;
+  currentRole?: ApplicationRole;
+  onNavigate: (view: AppView, role?: ApplicationRole) => void;
   isAdminLoggedIn?: boolean;
   onAdminLogout?: () => void;
 }
@@ -19,7 +21,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const handleNavClick = (view: 'home' | 'form' | 'status' | 'admin', role?: 'STAFF' | 'BUILDER') => {
+  const handleNavClick = (view: AppView, role?: ApplicationRole) => {
     onNavigate(view, role);
     setMobileMenuOpen(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -33,7 +35,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             id="nav-brand-logo"
             onClick={() => handleNavClick('home')}
-            className="flex items-center gap-3.5 text-left group focus:outline-none transition-transform active:scale-98"
+            className="flex items-center gap-3.5 text-left group focus:outline-none transition-transform active:scale-98 cursor-pointer"
           >
             <ServerLogo size="md" />
             <div className="flex flex-col">
@@ -51,7 +53,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               id="nav-btn-home"
               onClick={() => handleNavClick('home')}
-              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer ${
                 currentView === 'home'
                   ? 'bg-slate-800 text-white border border-slate-700 shadow-sm'
                   : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
@@ -64,7 +66,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               id="nav-btn-builder-form"
               onClick={() => handleNavClick('form', 'BUILDER')}
-              className={`px-3.5 py-2 rounded-lg text-xs lg:text-sm font-extrabold flex items-center gap-1.5 transition-all border ${
+              className={`px-3.5 py-2 rounded-lg text-xs lg:text-sm font-extrabold flex items-center gap-1.5 transition-all border cursor-pointer ${
                 currentView === 'form' && currentRole === 'BUILDER'
                   ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-lg shadow-amber-500/25'
                   : 'bg-amber-500/10 text-amber-300 border-amber-500/30 hover:bg-amber-500/20'
@@ -78,7 +80,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               id="nav-btn-staff-form"
               onClick={() => handleNavClick('form', 'STAFF')}
-              className={`px-3.5 py-2 rounded-lg text-xs lg:text-sm font-extrabold flex items-center gap-1.5 transition-all border ${
+              className={`px-3.5 py-2 rounded-lg text-xs lg:text-sm font-extrabold flex items-center gap-1.5 transition-all border cursor-pointer ${
                 currentView === 'form' && currentRole === 'STAFF'
                   ? 'bg-blue-600 text-white border-blue-400 shadow-lg shadow-blue-600/30'
                   : 'bg-blue-600/10 text-blue-300 border-blue-500/30 hover:bg-blue-600/20'
@@ -88,17 +90,31 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span>Postular STAFF</span>
             </button>
 
+            {/* MIS POSTULACIONES */}
+            <button
+              id="nav-btn-my-applications"
+              onClick={() => handleNavClick('my-applications')}
+              className={`px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
+                currentView === 'my-applications'
+                  ? 'bg-blue-600/20 text-blue-400 border border-blue-500/40 shadow-sm font-bold'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+              }`}
+            >
+              <FileText className="w-4 h-4 text-blue-400" />
+              <span>Mis Postulaciones</span>
+            </button>
+
             <button
               id="nav-btn-status"
               onClick={() => handleNavClick('status')}
-              className={`px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-all ${
+              className={`px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
                 currentView === 'status'
                   ? 'bg-blue-600/20 text-blue-400 border border-blue-500/40'
                   : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
               }`}
             >
               <Search className="w-4 h-4 text-slate-400" />
-              <span>Consultar Estado</span>
+              <span>Consultar ID</span>
             </button>
 
             {/* Admin Panel button - Only visible when already logged in as staff */}
@@ -184,6 +200,18 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span>Postularme como STAFF (Moderación)</span>
             </button>
 
+            {/* Mobile Mis Postulaciones */}
+            <button
+              id="mobile-nav-my-applications"
+              onClick={() => handleNavClick('my-applications')}
+              className={`w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2 ${
+                currentView === 'my-applications' ? 'bg-blue-600/20 text-blue-400 font-bold' : 'text-slate-300'
+              }`}
+            >
+              <FileText className="w-4 h-4 text-blue-400" />
+              <span>Mis Postulaciones</span>
+            </button>
+
             <button
               id="mobile-nav-status"
               onClick={() => handleNavClick('status')}
@@ -192,7 +220,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <Search className="w-4 h-4" />
-              Consultar Estado de Postulación
+              Consultar por ID
             </button>
 
             {isAdminLoggedIn && (

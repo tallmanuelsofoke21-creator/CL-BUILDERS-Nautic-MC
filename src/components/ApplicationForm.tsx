@@ -17,7 +17,8 @@ import {
   Hammer,
   Shield,
   Wrench,
-  Info
+  Info,
+  FileText
 } from 'lucide-react';
 import { ApplicationRole, StaffSubmissionData, BuilderSubmissionData } from '../types';
 
@@ -25,12 +26,14 @@ interface ApplicationFormProps {
   initialRole?: ApplicationRole;
   onBackToHome: () => void;
   onCheckStatus: (id?: string) => void;
+  onOpenMyApplications?: () => void;
 }
 
 export const ApplicationForm: React.FC<ApplicationFormProps> = ({
   initialRole = 'BUILDER',
   onBackToHome,
   onCheckStatus,
+  onOpenMyApplications,
 }) => {
   const [role, setRole] = useState<ApplicationRole>(initialRole);
 
@@ -83,10 +86,12 @@ export const ApplicationForm: React.FC<ApplicationFormProps> = ({
     role: ApplicationRole;
     discord_username: string;
     minecraft_username: string;
+    access_pin?: string;
     created_at: string;
   } | null>(null);
 
   const [copiedId, setCopiedId] = useState(false);
+  const [copiedPin, setCopiedPin] = useState(false);
   const [showDiscordIdHelp, setShowDiscordIdHelp] = useState(false);
 
   // Handle staff inputs
@@ -318,7 +323,21 @@ export const ApplicationForm: React.FC<ApplicationFormProps> = ({
         return;
       }
 
-      setSuccessData(data.application);
+      // Save applicant token & identity for automatic instant access to "Mis postulaciones"
+      if (data.applicant_token) {
+        localStorage.setItem('nautic_applicant_token', data.applicant_token);
+      }
+      if (data.application?.discord_id) {
+        localStorage.setItem('nautic_applicant_discord_id', data.application.discord_id);
+      }
+      if (data.application?.discord_username) {
+        localStorage.setItem('nautic_applicant_discord_user', data.application.discord_username);
+      }
+
+      setSuccessData({
+        ...data.application,
+        access_pin: data.access_pin || data.application?.access_pin,
+      });
       setIsSubmitting(false);
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
@@ -346,6 +365,14 @@ export const ApplicationForm: React.FC<ApplicationFormProps> = ({
     }
   };
 
+  const copyAccessPin = () => {
+    if (successData?.access_pin) {
+      navigator.clipboard.writeText(successData.access_pin);
+      setCopiedPin(true);
+      setTimeout(() => setCopiedPin(false), 2500);
+    }
+  };
+
   // --- SUCCESS VIEW ---
   if (successData) {
     return (
@@ -362,47 +389,79 @@ export const ApplicationForm: React.FC<ApplicationFormProps> = ({
               ¡Postulación para {successData.role === 'BUILDER' ? 'Builder' : 'Staff'} enviada!
             </h2>
             <p className="text-slate-300 text-base sm:text-lg max-w-lg mx-auto">
-              Tu postulación ha sido recibida correctamente. El equipo de <strong className="text-blue-400">CL | BUILDERS Nautic MC</strong> evaluará tu perfil.
+              Tu postulación ha sido registrada con éxito y ya se encuentra en la sección <strong className="text-amber-400">Postulaciones en revisión</strong>.
             </p>
           </div>
 
-          {/* Application Unique ID Card */}
-          <div className="bg-[#0b0f19] border border-blue-500/30 rounded-xl p-5 max-w-md mx-auto space-y-2">
-            <span className="text-xs uppercase tracking-wider font-semibold text-slate-400">
-              Identificador Único de Postulación
-            </span>
-            <div className="flex items-center justify-center gap-3">
-              <span className={`font-mono text-xl sm:text-2xl font-bold tracking-wider ${
-                successData.role === 'BUILDER' ? 'text-amber-400' : 'text-blue-400'
-              }`}>
-                {successData.id}
+          {/* Application Unique ID and PIN Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg mx-auto">
+            {/* ID Card */}
+            <div className="bg-[#0b0f19] border border-blue-500/30 rounded-xl p-4 space-y-1.5">
+              <span className="text-[11px] uppercase tracking-wider font-semibold text-slate-400">
+                ID de Postulación
               </span>
-              <button
-                id="copy-id-btn"
-                onClick={copyApplicationId}
-                className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-colors flex items-center gap-1.5 text-xs"
-                title="Copiar ID"
-              >
-                {copiedId ? (
-                  <>
-                    <Check className="w-3.5 h-3.5 text-emerald-400" />
-                    <span className="text-emerald-400">Copiado</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-3.5 h-3.5" />
-                    <span>Copiar</span>
-                  </>
-                )}
-              </button>
+              <div className="flex items-center justify-center gap-2">
+                <span className={`font-mono text-lg sm:text-xl font-bold tracking-wider ${
+                  successData.role === 'BUILDER' ? 'text-amber-400' : 'text-blue-400'
+                }`}>
+                  {successData.id}
+                </span>
+                <button
+                  id="copy-id-btn"
+                  onClick={copyApplicationId}
+                  className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-colors flex items-center gap-1 text-xs cursor-pointer"
+                  title="Copiar ID"
+                >
+                  {copiedId ? (
+                    <>
+                      <Check className="w-3 h-3 text-emerald-400" />
+                      <span className="text-emerald-400 text-[10px]">Listo</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3 h-3" />
+                      <span className="text-[10px]">Copiar</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
-            <p className="text-xs text-slate-400">
-              Guarda este código para consultar el estado en cualquier momento.
-            </p>
+
+            {/* PIN Card */}
+            {successData.access_pin && (
+              <div className="bg-[#0b0f19] border border-emerald-500/30 rounded-xl p-4 space-y-1.5">
+                <span className="text-[11px] uppercase tracking-wider font-semibold text-slate-400">
+                  PIN de Acceso Privado
+                </span>
+                <div className="flex items-center justify-center gap-2">
+                  <span className="font-mono text-lg sm:text-xl font-bold tracking-wider text-emerald-400">
+                    {successData.access_pin}
+                  </span>
+                  <button
+                    id="copy-pin-btn"
+                    onClick={copyAccessPin}
+                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-colors flex items-center gap-1 text-xs cursor-pointer"
+                    title="Copiar PIN"
+                  >
+                    {copiedPin ? (
+                      <>
+                        <Check className="w-3 h-3 text-emerald-400" />
+                        <span className="text-emerald-400 text-[10px]">Listo</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3 h-3" />
+                        <span className="text-[10px]">Copiar</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Summary Box */}
-          <div className="bg-[#161c2b] border border-slate-800 rounded-xl p-4 max-w-md mx-auto text-left text-sm text-slate-300 space-y-1.5">
+          <div className="bg-[#161c2b] border border-slate-800 rounded-xl p-4 max-w-lg mx-auto text-left text-sm text-slate-300 space-y-1.5">
             <div className="flex justify-between">
               <span className="text-slate-400">Puesto:</span>
               <span className="font-bold text-white">{successData.role === 'BUILDER' ? 'Builder (Construcción)' : 'Staff (Moderación)'}</span>
@@ -414,28 +473,39 @@ export const ApplicationForm: React.FC<ApplicationFormProps> = ({
             <div className="flex justify-between">
               <span className="text-slate-400">Estado inicial:</span>
               <span className="font-semibold text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded text-xs">
-                PENDIENTE
+                🟡 EN REVISIÓN
               </span>
             </div>
           </div>
 
           {/* Action buttons */}
           <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
+            {onOpenMyApplications ? (
+              <button
+                id="success-go-my-apps-btn"
+                onClick={onOpenMyApplications}
+                className="w-full sm:w-auto px-6 py-3.5 bg-blue-600 hover:bg-blue-500 text-white font-extrabold rounded-xl shadow-lg shadow-blue-600/30 transition-all text-sm uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <FileText className="w-4 h-4" />
+                <span>Ver en Mis Postulaciones</span>
+              </button>
+            ) : (
+              <button
+                id="success-check-status-btn"
+                onClick={() => onCheckStatus(successData.id)}
+                className="w-full sm:w-auto px-6 py-3.5 bg-blue-600 hover:bg-blue-500 text-white font-extrabold rounded-xl shadow-lg shadow-blue-600/30 transition-all text-sm uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <FileText className="w-4 h-4" />
+                <span>Ver en Mis Postulaciones</span>
+              </button>
+            )}
+
             <button
               id="success-back-home-btn"
               onClick={onBackToHome}
-              className="w-full sm:w-auto px-6 py-3.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg shadow-blue-600/30 transition-all text-sm uppercase tracking-wider"
+              className="w-full sm:w-auto px-6 py-3.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-semibold rounded-xl border border-slate-700 transition-all text-sm cursor-pointer"
             >
-              VOLVER AL INICIO
-            </button>
-
-            <button
-              id="success-check-status-btn"
-              onClick={() => onCheckStatus(successData.id)}
-              className="w-full sm:w-auto px-6 py-3.5 bg-[#1a2334] hover:bg-[#232f46] text-slate-200 hover:text-white font-semibold rounded-xl border border-slate-700 transition-all text-sm flex items-center justify-center gap-2"
-            >
-              <Search className="w-4 h-4" />
-              <span>Ver Estado de mi Postulación</span>
+              Volver al Inicio
             </button>
           </div>
         </div>

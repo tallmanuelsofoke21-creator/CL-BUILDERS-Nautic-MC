@@ -14,6 +14,7 @@ export interface BaseApplication {
   reviewer_discord?: string;
   reviewer_minecraft?: string;
   reviewed_at?: string;
+  access_pin?: string;
   discord_notified?: boolean;
   created_at: string;
   updated_at: string;
@@ -118,4 +119,23 @@ export interface PublicStatusResponse {
   status: ApplicationStatus;
   created_at: string;
   updated_at: string;
+  reviewed_at?: string;
 }
+
+export interface ApplicantAuthResponse {
+  success: boolean;
+  token?: string;
+  discord_id?: string;
+  discord_username?: string;
+  error?: string;
+}
+
+export interface MyApplicationsResponse {
+  discord_id: string;
+  discord_username: string;
+  in_review: ApplicationItem[];
+  history: ApplicationItem[];
+}
+
+export type AppView = 'home' | 'form' | 'status' | 'my-applications' | 'admin';
+

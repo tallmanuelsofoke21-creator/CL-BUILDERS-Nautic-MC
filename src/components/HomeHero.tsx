@@ -21,19 +21,14 @@ import { ApplicationRole } from '../types';
 interface HomeHeroProps {
   onStartApplication: (role?: ApplicationRole) => void;
   onCheckStatus: () => void;
+  onOpenMyApplications?: () => void;
 }
 
 export const HomeHero: React.FC<HomeHeroProps> = ({
   onStartApplication,
   onCheckStatus,
+  onOpenMyApplications,
 }) => {
-  const [statusInput, setStatusInput] = useState('');
-
-  const handleQuickSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    onCheckStatus();
-  };
-
   return (
     <div className="py-6 sm:py-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8 sm:space-y-10">
       
@@ -56,15 +51,28 @@ export const HomeHero: React.FC<HomeHeroProps> = ({
           </div>
         </div>
 
-        {/* Quick Check Status CTA in Header */}
-        <button
-          id="hero-quick-status-top"
-          onClick={onCheckStatus}
-          className="px-4 py-2.5 bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white rounded-xl border border-slate-700/80 text-xs sm:text-sm font-semibold flex items-center gap-2 transition-all shadow-sm"
-        >
-          <Search className="w-4 h-4 text-blue-400" />
-          <span>Consultar Estado de Postulación</span>
-        </button>
+        {/* Quick Check Status & My Applications CTA in Header */}
+        <div className="flex items-center gap-2.5 flex-wrap">
+          {onOpenMyApplications && (
+            <button
+              id="hero-btn-my-applications"
+              onClick={onOpenMyApplications}
+              className="px-4 py-2.5 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 hover:text-white rounded-xl border border-blue-500/40 text-xs sm:text-sm font-bold flex items-center gap-2 transition-all shadow-sm cursor-pointer"
+            >
+              <FileText className="w-4 h-4 text-blue-400" />
+              <span>Mis Postulaciones</span>
+            </button>
+          )}
+
+          <button
+            id="hero-quick-status-top"
+            onClick={onCheckStatus}
+            className="px-4 py-2.5 bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white rounded-xl border border-slate-700/80 text-xs sm:text-sm font-semibold flex items-center gap-2 transition-all shadow-sm cursor-pointer"
+          >
+            <Search className="w-4 h-4 text-slate-400" />
+            <span>Consultar por ID</span>
+          </button>
+        </div>
       </div>
 
       {/* Main Grid: DUAL CARDS (BUILDER & STAFF) SIDE BY SIDE */}

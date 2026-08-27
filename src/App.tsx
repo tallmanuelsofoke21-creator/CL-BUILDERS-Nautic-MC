@@ -3,12 +3,11 @@ import { Navbar } from './components/Navbar';
 import { HomeHero } from './components/HomeHero';
 import { ApplicationForm } from './components/ApplicationForm';
 import { StatusCheckerView } from './components/StatusCheckerView';
+import { MyApplicationsView } from './components/MyApplicationsView';
 import { AdminLogin } from './components/admin/AdminLogin';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { Footer } from './components/Footer';
-import { ApplicationRole } from './types';
-
-export type AppView = 'home' | 'form' | 'status' | 'admin';
+import { ApplicationRole, AppView } from './types';
 
 export default function App() {
   const [currentView, setCurrentView] = useState<AppView>('home');
@@ -27,6 +26,8 @@ export default function App() {
         setCurrentView('admin');
       } else if (path === '/postular' || hash === '#postular') {
         setCurrentView('form');
+      } else if (path === '/mis-postulaciones' || hash === '#mis-postulaciones' || path === '/mispostulaciones' || hash === '#mispostulaciones') {
+        setCurrentView('my-applications');
       } else if (path === '/estado' || hash === '#estado') {
         setCurrentView('status');
       }
@@ -88,6 +89,7 @@ export default function App() {
     // Update hash for easy bookmarking without reloading
     if (view === 'admin') window.history.pushState(null, '', '#admin');
     else if (view === 'form') window.history.pushState(null, '', '#postular');
+    else if (view === 'my-applications') window.history.pushState(null, '', '#mis-postulaciones');
     else if (view === 'status') window.history.pushState(null, '', '#estado');
     else window.history.pushState(null, '', '/');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -128,6 +130,7 @@ export default function App() {
           <HomeHero
             onStartApplication={(role) => handleNavigate('form', role)}
             onCheckStatus={() => handleNavigate('status')}
+            onOpenMyApplications={() => handleNavigate('my-applications')}
           />
         )}
 
@@ -137,6 +140,14 @@ export default function App() {
             initialRole={formInitialRole}
             onBackToHome={() => handleNavigate('home')}
             onCheckStatus={handleCheckStatusWithId}
+            onOpenMyApplications={() => handleNavigate('my-applications')}
+          />
+        )}
+
+        {currentView === 'my-applications' && (
+          <MyApplicationsView
+            onBackToHome={() => handleNavigate('home')}
+            onApplyNew={(role) => handleNavigate('form', role)}
           />
         )}
 

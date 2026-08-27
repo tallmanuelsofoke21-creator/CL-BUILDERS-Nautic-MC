@@ -2,8 +2,10 @@ import React from 'react';
 import { ServerLogo } from './ServerLogo';
 import { Shield, Sparkles, Heart } from 'lucide-react';
 
+import { AppView } from '../types';
+
 interface FooterProps {
-  onNavigate: (view: 'home' | 'form' | 'status' | 'admin') => void;
+  onNavigate: (view: AppView) => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
@@ -24,7 +26,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
           </div>
 
           {/* Quick links */}
-          <div className="flex items-center gap-6 text-xs text-slate-400 font-medium">
+          <div className="flex items-center gap-5 text-xs text-slate-400 font-medium flex-wrap justify-center">
             <button
               onClick={() => {
                 onNavigate('home');
@@ -45,12 +47,21 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             </button>
             <button
               onClick={() => {
+                onNavigate('my-applications');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="hover:text-blue-400 text-blue-400 font-semibold transition-colors cursor-pointer"
+            >
+              Mis Postulaciones
+            </button>
+            <button
+              onClick={() => {
                 onNavigate('status');
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
               className="hover:text-blue-400 transition-colors cursor-pointer"
             >
-              Consultar Estado
+              Consultar ID
             </button>
           </div>
         </div>

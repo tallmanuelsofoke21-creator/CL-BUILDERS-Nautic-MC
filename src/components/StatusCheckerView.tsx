@@ -265,8 +265,12 @@ export const StatusCheckerView: React.FC<StatusCheckerViewProps> = ({
               </div>
 
               <div className="bg-[#121622] p-3.5 rounded-lg border border-slate-800/80 space-y-1">
-                <span className="text-xs text-slate-400">Última Actualización:</span>
-                <p className="font-medium text-slate-200">{formatDate(result.updated_at)}</p>
+                <span className="text-xs text-slate-400">
+                  {result.reviewed_at ? 'Respondida el:' : 'Última Actualización:'}
+                </span>
+                <p className={`font-medium ${result.reviewed_at ? (result.status === 'ACEPTADA' ? 'text-emerald-300 font-semibold' : 'text-rose-300 font-semibold') : 'text-slate-200'}`}>
+                  {formatDate(result.reviewed_at || result.updated_at)}
+                </p>
               </div>
             </div>
 
