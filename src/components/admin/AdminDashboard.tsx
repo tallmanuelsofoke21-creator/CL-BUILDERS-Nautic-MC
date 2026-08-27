@@ -56,14 +56,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [showDiscordSettings, setShowDiscordSettings] = useState(false);
 
-  // Filters & Search
+  // Filters & Search (Default to PENDIENTE so the main queue only shows pending applications)
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'ALL' | ApplicationStatus>('ALL');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | ApplicationStatus>('PENDIENTE');
   const [roleFilter, setRoleFilter] = useState<'ALL' | ApplicationRole>('ALL');
   const [sortOption, setSortOption] = useState<'newest' | 'oldest' | 'age_desc' | 'minecraft'>('newest');
 
   // Quick Action notification toast
-  const [actionNotice, setActionNotice] = useState<{ text: string; type: 'success' | 'info' } | null>(null);
+  const [actionNotice, setActionNotice] = useState<{ text: string; type: 'success' | 'info' | 'error' } | null>(null);
 
   // Modal inspection
   const [selectedApp, setSelectedApp] = useState<ApplicationItem | null>(null);
@@ -71,7 +71,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   useEffect(() => {
     if (actionNotice) {
-      const timer = setTimeout(() => setActionNotice(null), 3000);
+      const timer = setTimeout(() => setActionNotice(null), 3500);
       return () => clearTimeout(timer);
     }
   }, [actionNotice]);
@@ -164,10 +164,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       const data = await res.json();
       if (res.ok) {
         const updated = data.application as ApplicationItem;
-        setApplications((prev) => prev.map((a) => (a.id === appId ? updated : a)));
+        
+        // If viewing PENDIENTE, immediately remove the resolved postulation from the list
+        if (statusFilter === 'PENDIENTE') {
+          setApplications((prev) => prev.filter((a) => a.id !== appId));
+        } else if (statusFilter === 'ACEPTADA' && newStatus !== 'ACEPTADA') {
+          setApplications((prev) => prev.filter((a) => a.id !== appId));
+        } else if (statusFilter === 'RECHAZADA' && newStatus !== 'RECHAZADA') {
+          setApplications((prev) => prev.filter((a) => a.id !== appId));
+        } else {
+          setApplications((prev) => prev.map((a) => (a.id === appId ? updated : a)));
+        }
+
         fetchStats();
         setActionNotice({
-          text: `Postulación ${appId} actualizada a ${newStatus} correctamente.${data.discord?.sent ? ' (Notificación enviada a Discord)' : ''}`,
+          text: `Postulación #${appId} ${newStatus === 'ACEPTADA' ? 'ACEPTADA' : 'RECHAZADA'} y quitada de pendientes.${data.discord?.sent ? ' (Notificación enviada a Discord)' : ''}`,
           type: 'success',
         });
       } else {
@@ -365,7 +376,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* KPI Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {/* Total */}
-        <div className="bg-[#121620] border border-[#1e2638] rounded-2xl p-5 shadow-lg relative overflow-hidden group">
+        <div 
+          onClick={() => setStatusFilter('ALL')}
+          className={`bg-[#121620] border rounded-2xl p-5 shadow-lg relative overflow-hidden group cursor-pointer transition-all ${
+            statusFilter === 'ALL' ? 'border-blue-500 bg-blue-950/10 ring-1 ring-blue-500/50' : 'border-[#1e2638] hover:border-slate-700'
+          }`}
+        >
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
               Total Postulaciones
@@ -552,48 +568,52 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           {/* Status Filters */}
           <div className="flex items-center gap-1.5 overflow-x-auto text-xs font-semibold">
             <span className="text-slate-500 mr-1 text-[11px] uppercase tracking-wider">Estado:</span>
-            <button
-              onClick={() => setStatusFilter('ALL')}
-              className={`px-2.5 py-1.5 rounded-lg border transition-all ${
-                statusFilter === 'ALL'
-                  ? 'bg-blue-600 text-white border-blue-500 shadow-sm'
-                  : 'bg-slate-900/60 text-slate-300 border-slate-800 hover:text-white'
-              }`}
-            >
-              Todos ({stats.total})
-            </button>
-
+            
             <button
               onClick={() => setStatusFilter('PENDIENTE')}
-              className={`px-2.5 py-1.5 rounded-lg border transition-all ${
+              className={`px-3 py-1.5 rounded-lg border transition-all flex items-center gap-1.5 cursor-pointer ${
                 statusFilter === 'PENDIENTE'
-                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-sm'
-                  : 'bg-slate-900/60 text-slate-300 border-slate-800 hover:text-amber-400'
+                  ? 'bg-amber-500 text-slate-950 border-amber-400 font-extrabold shadow-sm'
+                  : 'bg-slate-900/60 text-amber-400 border-amber-500/30 hover:bg-amber-500/10'
               }`}
             >
-              Pendientes ({stats.pendientes})
+              <Clock className="w-3.5 h-3.5" />
+              <span>Pendientes ({stats.pendientes})</span>
             </button>
 
             <button
               onClick={() => setStatusFilter('ACEPTADA')}
-              className={`px-2.5 py-1.5 rounded-lg border transition-all ${
+              className={`px-3 py-1.5 rounded-lg border transition-all flex items-center gap-1.5 cursor-pointer ${
                 statusFilter === 'ACEPTADA'
-                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50 shadow-sm'
-                  : 'bg-slate-900/60 text-slate-300 border-slate-800 hover:text-emerald-400'
+                  ? 'bg-emerald-600 text-white border-emerald-400 font-extrabold shadow-sm'
+                  : 'bg-slate-900/60 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10'
               }`}
             >
-              Aceptadas ({stats.aceptadas})
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>Aceptadas ({stats.aceptadas})</span>
             </button>
 
             <button
               onClick={() => setStatusFilter('RECHAZADA')}
-              className={`px-2.5 py-1.5 rounded-lg border transition-all ${
+              className={`px-3 py-1.5 rounded-lg border transition-all flex items-center gap-1.5 cursor-pointer ${
                 statusFilter === 'RECHAZADA'
-                  ? 'bg-rose-500/20 text-rose-300 border-rose-500/50 shadow-sm'
-                  : 'bg-slate-900/60 text-slate-300 border-slate-800 hover:text-rose-400'
+                  ? 'bg-rose-600 text-white border-rose-400 font-extrabold shadow-sm'
+                  : 'bg-slate-900/60 text-rose-400 border-rose-500/30 hover:bg-rose-500/10'
               }`}
             >
-              Rechazadas ({stats.rechazadas})
+              <XCircle className="w-3.5 h-3.5" />
+              <span>Rechazadas ({stats.rechazadas})</span>
+            </button>
+
+            <button
+              onClick={() => setStatusFilter('ALL')}
+              className={`px-3 py-1.5 rounded-lg border transition-all cursor-pointer ${
+                statusFilter === 'ALL'
+                  ? 'bg-blue-600 text-white border-blue-400 font-bold shadow-sm'
+                  : 'bg-slate-900/60 text-slate-300 border-slate-800 hover:text-white'
+              }`}
+            >
+              <span>Todas ({stats.total})</span>
             </button>
           </div>
         </div>
@@ -612,18 +632,58 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <p className="text-sm font-semibold">{error}</p>
           </div>
         ) : applications.length === 0 ? (
-          <div className="py-16 text-center space-y-3 px-4">
-            <Users className="w-10 h-10 text-slate-600 mx-auto" />
-            <h3 className="text-base font-bold text-white">No se encontraron postulaciones</h3>
-            <p className="text-xs text-slate-400 max-w-sm mx-auto">
-              No hay solicitudes que coincidan con los filtros seleccionados.
-            </p>
-            <button
-              onClick={handleResetSeed}
-              className="mt-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold border border-slate-700"
-            >
-              Cargar datos de prueba
-            </button>
+          <div className="py-16 text-center space-y-3 px-4 animate-in fade-in">
+            {statusFilter === 'PENDIENTE' ? (
+              <>
+                <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center mx-auto">
+                  <CheckCircle2 className="w-6 h-6 text-emerald-400" />
+                </div>
+                <h3 className="text-lg font-extrabold text-white">🎉 ¡Excelente! No hay postulaciones pendientes</h3>
+                <p className="text-xs text-slate-400 max-w-md mx-auto">
+                  Todas las postulaciones han sido evaluadas y procesadas por el equipo directivo.
+                </p>
+                <div className="pt-2 flex items-center justify-center gap-2 flex-wrap">
+                  <button
+                    onClick={() => setStatusFilter('ACEPTADA')}
+                    className="px-3.5 py-2 bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-300 rounded-xl text-xs font-bold border border-emerald-500/30 transition-all cursor-pointer flex items-center gap-1.5"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Ver Aceptadas ({stats.aceptadas})</span>
+                  </button>
+                  <button
+                    onClick={() => setStatusFilter('RECHAZADA')}
+                    className="px-3.5 py-2 bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 rounded-xl text-xs font-bold border border-rose-500/30 transition-all cursor-pointer flex items-center gap-1.5"
+                  >
+                    <XCircle className="w-3.5 h-3.5" />
+                    <span>Ver Rechazadas ({stats.rechazadas})</span>
+                  </button>
+                  <button
+                    onClick={() => setStatusFilter('ALL')}
+                    className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold border border-slate-700 transition-all cursor-pointer"
+                  >
+                    Ver Todas ({stats.total})
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <Users className="w-10 h-10 text-slate-600 mx-auto" />
+                <h3 className="text-base font-bold text-white">No se encontraron postulaciones</h3>
+                <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                  No hay solicitudes que coincidan con los filtros seleccionados.
+                </p>
+                <button
+                  onClick={() => {
+                    setStatusFilter('PENDIENTE');
+                    setRoleFilter('ALL');
+                    setSearchTerm('');
+                  }}
+                  className="mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold transition-all cursor-pointer"
+                >
+                  Restablecer filtros
+                </button>
+              </>
+            )}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -787,9 +847,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           adminToken={token}
           onClose={() => setSelectedApp(null)}
           onStatusUpdated={(updated) => {
-            setApplications((prev) =>
-              prev.map((a) => (a.id === updated.id ? updated : a))
-            );
+            if (statusFilter === 'PENDIENTE' && updated.status !== 'PENDIENTE') {
+              setApplications((prev) => prev.filter((a) => a.id !== updated.id));
+            } else if (statusFilter === 'ACEPTADA' && updated.status !== 'ACEPTADA') {
+              setApplications((prev) => prev.filter((a) => a.id !== updated.id));
+            } else if (statusFilter === 'RECHAZADA' && updated.status !== 'RECHAZADA') {
+              setApplications((prev) => prev.filter((a) => a.id !== updated.id));
+            } else {
+              setApplications((prev) =>
+                prev.map((a) => (a.id === updated.id ? updated : a))
+              );
+            }
             fetchStats();
           }}
           onDelete={async (deletedId) => {
